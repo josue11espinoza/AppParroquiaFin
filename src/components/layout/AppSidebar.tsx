@@ -1,5 +1,6 @@
-import { Church, Users, Calendar, Search, Home, BookOpen } from "lucide-react";
+import { Church, Users, Calendar, Search, Home, BookOpen, UserCog, LogOut } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   Sidebar,
   SidebarContent,
@@ -10,19 +11,33 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
+  SidebarFooter,
 } from "@/components/ui/sidebar";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 const menuItems = [
   { title: "Inicio", url: "/", icon: Home },
   { title: "Buscar Registros", url: "/search", icon: Search },
-  { title: "Feligreses", url: "/parishioners", icon: Users },
-  { title: "Sacramentos", url: "/sacraments", icon: BookOpen },
-  { title: "Sacerdotes", url: "/priests", icon: Church },
+  { title: "Feligreses", url: "/parishioners", icon: Users, adminOnly: true },
+  { title: "Sacramentos", url: "/sacraments", icon: BookOpen, adminOnly: true },
+  { title: "Sacerdotes", url: "/priests", icon: Church, adminOnly: true },
   { title: "Horarios", url: "/schedules", icon: Calendar },
+  { title: "Usuarios", url: "/users", icon: UserCog, adminOnly: true },
 ];
 
 export function AppSidebar() {
   const location = useLocation();
+  const { user, isAdmin, isPriest, signOut, userRole } = useAuth();
+
+  const filteredItems = menuItems.filter(item => {
+    if (item.adminOnly && !isAdmin) return false;
+    return true;
+  });
+
+  const handleSignOut = async () => {
+    await signOut();
+  };
 
   return (
     <Sidebar className="border-r-0">
@@ -49,7 +64,7 @@ export function AppSidebar() {
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => {
+              {filteredItems.map((item) => {
                 const isActive = location.pathname === item.url;
                 return (
                   <SidebarMenuItem key={item.title}>
@@ -76,6 +91,37 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+
+      <SidebarFooter className="p-4 border-t border-sidebar-border">
+        {user && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full bg-sidebar-accent flex items-center justify-center">
+                <span className="text-sm font-medium text-sidebar-foreground">
+                  {user.email?.charAt(0).toUpperCase()}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-sidebar-foreground truncate">
+                  {user.email}
+                </p>
+                <Badge variant={isAdmin ? "default" : "secondary"} className="text-xs">
+                  {isAdmin ? "Admin" : isPriest ? "Padre" : "Sin rol"}
+                </Badge>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full"
+              onClick={handleSignOut}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Cerrar Sesión
+            </Button>
+          </div>
+        )}
+      </SidebarFooter>
     </Sidebar>
   );
 }
